@@ -1,0 +1,21 @@
+api_version = "2026-10"
+
+[[extensions]]
+name = "Jev typed decision"
+handle = "jev-typed-decision"
+type = "flow_action"
+
+[extensions.settings]
+  [[extensions.settings.fields]]
+  type = "single_line_text_field"
+  key = "decisionId"
+  name = "Decision ID"
+  required = true
+  [[extensions.settings.fields]]
+  type = "multi_line_text_field"
+  key = "subject"
+  name = "Subject JSON"
+  required = true
+
+[extensions.runtime_url]
+url = "https://example.invalid/api/flow/decision"

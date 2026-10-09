@@ -31,3 +31,7 @@ Provider probabilities and the automation threshold must now stay in [0,1]; inva
 Les probabilités du fournisseur et le seuil d’automatisation doivent désormais rester dans [0,1] ; une valeur invalide ne peut pas déclencher un routage automatique. Lancez `npm test` sans identifiants Shopify.
 
 Las probabilidades del proveedor y el umbral de automatización deben permanecer en [0,1]; un valor inválido no puede activar un enrutamiento automático. Ejecute `npm test` sin credenciales de Shopify.
+
+## Contrôle d’adoption · Adoption check · Comprobación de adopción
+
+[Français : essayer un cas concret](examples/adoption-check.md) · [English: try a concrete case](examples/adoption-check.md) · [Español: pruebe un caso concreto](examples/adoption-check.md).

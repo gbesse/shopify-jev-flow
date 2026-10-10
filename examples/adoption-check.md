@@ -40,3 +40,15 @@ FR : adaptez une copie de la fixture locale à cette situation, puis vérifiez l
 EN: adapt a copy of the local fixture to this situation, then check the behavior described above. Values are illustrative, not measured Jev output.
 
 ES: adapte una copia de la fixture local a esta situación y compruebe el comportamiento descrito arriba. Los valores son ilustrativos, no resultados Jev medidos.
+
+## Second cas · Second case · Segundo caso
+
+```text
+provider_probability=1.2; automation_threshold=0.8
+```
+
+**FR :** Une probabilité hors de [0,1] ne doit jamais provoquer une approbation automatique. Inspectez le chemin d’erreur ou de revue avec une fixture synthétique.
+
+**EN:** A probability outside [0,1] must never trigger automatic approval. Inspect the error or review path with a synthetic fixture.
+
+**ES:** Una probabilidad fuera de [0,1] nunca debe provocar una aprobación automática. Revise la ruta de error o revisión con una fixture sintética.

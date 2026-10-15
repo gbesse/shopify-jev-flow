@@ -11,7 +11,7 @@ export function verifyShopifyHmac(rawBody, received, secret) {
 }
 
 export function buildRequest(input) {
-  if (!input?.decisionId || !input?.subject || typeof input.subject !== 'object') throw new TypeError('decisionId and subject are required');
+  if (typeof input?.decisionId !== 'string' || !input.decisionId.trim() || input.decisionId.length > 128 || !input?.subject || typeof input.subject !== 'object' || Array.isArray(input.subject)) throw new TypeError('decisionId et subject invalides / Invalid decisionId and subject / decisionId y subject no válidos');
   return {
     model: MODEL,
     state: { policy: input.policy ?? 'default', subject: input.subject },

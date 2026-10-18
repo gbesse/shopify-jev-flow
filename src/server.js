@@ -3,10 +3,23 @@ import { createServer } from 'node:http';
 import { appendFile, mkdir, readFile, writeFile, rename, rm } from 'node:fs/promises';
 import { dirname } from 'node:path';
 import { createHash, randomUUID } from 'node:crypto';
-import { buildRequest, fakeResponse, normalizeDecision, verifyShopifyHmac } from './core.js';
+import { buildRequest, fakeResponse, normalizeDecision, verifyShopifyHmac, MODEL, OUTCOMES } from './core.js';
 
 const storePath = process.env.JEV_FLOW_STORE ?? 'local-data/decisions.json';
 const auditPath = process.env.JEV_FLOW_AUDIT ?? 'local-data/audit.jsonl';
+
+function checkedStore(store) {
+  if (!store || typeof store !== 'object' || Array.isArray(store) || ![Object.prototype, null].includes(Object.getPrototypeOf(store)))
+    throw new TypeError('Stockage invalide / Invalid receipt store / Almacén de recibos no válido');
+  return store;
+}
+function validDecision(value, decisionId) {
+  return value && value.decisionId === decisionId && value.model === MODEL &&
+    OUTCOMES.includes(value.route) && OUTCOMES.includes(value.proposedRoute) &&
+    Number.isFinite(value.confidence) && value.confidence >= 0 && value.confidence <= 1 &&
+    typeof value.reviewRequired === 'boolean' && (value.reviewRequired ? value.route === 'manual_review' :
+      value.route !== 'manual_review' && value.route === value.proposedRoute && value.confidence >= .8);
+}
 
 async function loadStore() { try { return JSON.parse(await readFile(storePath, 'utf8')); } catch (error) { if (error.code === 'ENOENT') return {}; throw error; } }
 async function saveStore(store) {
@@ -32,6 +45,7 @@ const digest = value => createHash('sha256').update(JSON.stringify(canonical(val
 
 export async function handleAction(rawBody, headers, { secret = process.env.SHOPIFY_API_SECRET, fixture = process.env.JEV_FIXTURE === '1', store = null, provider = liveProvider } = {}) {
   if (!fixture && !verifyShopifyHmac(rawBody, headers['x-shopify-hmac-sha256'], secret)) return { status: 401, body: { error: 'invalid_hmac' } };
+  if (store !== null) checkedStore(store);
   const input = JSON.parse(rawBody);
   const request = buildRequest(input);
   const scope = headers['x-shopify-shop-domain'] ?? 'fixture-local';
@@ -40,21 +54,23 @@ export async function handleAction(rawBody, headers, { secret = process.env.SHOP
   const receiptKey = digest([scope, input.decisionId]);
   const requestFingerprint = digest([scope, input]);
   const perform = async () => {
-    const decisions = store ?? await loadStore();
+    const decisions = checkedStore(store ?? await loadStore());
     if (Object.hasOwn(decisions, receiptKey)) {
       const receipt = decisions[receiptKey];
       if (receipt?.requestFingerprint !== requestFingerprint)
         return { status: 409, body: { error: 'decision_id_conflict' } };
-      return { status: 200, body: { ...receipt.decision, replayed: true } };
+      if (!validDecision(receipt.decision, input.decisionId)) return { status: 409, body: { error: 'invalid_bound_receipt' } };
+      return { status: 200, body: { ...structuredClone(receipt.decision), replayed: true } };
     }
     // Old receipts without a request binding cannot safely authorize a replay.
     if (Object.hasOwn(decisions, input.decisionId))
       return { status: 409, body: { error: 'unbound_legacy_receipt' } };
     const response = fixture ? fakeResponse(input) : await provider(request);
-    const decision = { decisionId: input.decisionId, ...normalizeDecision(response), model: response.model, usage: response.usage };
+    const decision = structuredClone({ decisionId: input.decisionId, ...normalizeDecision(response), model: response.model, usage: response.usage });
+    if (!validDecision(decision, input.decisionId)) throw new TypeError('Décision invalide / Invalid decision / Decisión no válida');
     decisions[receiptKey] = { requestFingerprint, decision };
     if (!store) { await saveStore(decisions); await audit({ recordedAt: new Date().toISOString(), shopDomain: scope, requestFingerprint, ...decision }); }
-    return { status: 200, body: decision };
+    return { status: 200, body: structuredClone(decision) };
   };
   const previous = store ? storeQueues.get(store) ?? Promise.resolve() : persistentQueue;
   const work = previous.catch(() => {}).then(perform);

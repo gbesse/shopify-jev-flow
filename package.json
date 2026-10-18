@@ -1,10 +1,20 @@
 {
   "name": "shopify-jev-flow",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Typed, reviewable Jev decisions for Shopify Flow",
   "type": "module",
-  "scripts": { "test": "node --test", "check": "node --check src/*.js && node --test", "demo": "node src/demo.js", "start": "node src/server.js" },
-  "engines": { "node": ">=22" },
+  "scripts": {
+    "test": "node --test",
+    "check": "node --check src/*.js && node --test",
+    "demo": "node src/demo.js",
+    "start": "node src/server.js"
+  },
+  "engines": {
+    "node": ">=22"
+  },
   "license": "MIT",
-  "repository": { "type": "git", "url": "https://github.com/gbesse/shopify-jev-flow.git" }
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/gbesse/shopify-jev-flow.git"
+  }
 }

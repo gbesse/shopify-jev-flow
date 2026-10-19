@@ -50,3 +50,11 @@ FR : Un stockage de reçus doit être un objet JSON ; tableaux, valeurs primitiv
 EN: Receipt storage must be a JSON object; arrays, primitives and incompatible instances are rejected before provider calls. A request-bound but incomplete or inconsistent receipt returns `409 invalid_bound_receipt` without paid recomputation. Returned results are detached from in-memory storage. Storage remains local and unsigned: consistency checking does not authenticate malicious file modifications or provide multiprocess locking.
 
 ES: El almacén de recibos debe ser un objeto JSON; rechaza arrays, valores primitivos e instancias incompatibles antes de llamar al proveedor. Un recibo vinculado a la solicitud pero incompleto o incoherente devuelve `409 invalid_bound_receipt` sin recálculo de pago. Los resultados devueltos se separan del almacenamiento en memoria. El almacenamiento sigue siendo local y sin firma: comprobar consistencia no autentica cambios maliciosos del archivo ni proporciona bloqueo multiproceso.
+
+## Expiration des décisions / Decision expiry / Caducidad de decisiones
+
+FR — Les reçus expirent après 24 h par défaut (`maxReceiptAgeMs`, 1 ms à 30 jours). La réponse expose `receipt.issuedAt/expiresAt` en millisecondes Unix. Un rejeu expiré, sans dates ou daté dans le futur retourne 409 sans réévaluation ni autorisation. Réévaluer avec un nouvel identifiant après revue ; augmenter la durée ne prolonge pas un reçu émis. La file reste locale au processus, pas un verrou distribué.
+
+EN — Receipts expire after 24 hours by default (`maxReceiptAgeMs`, 1 ms to 30 days). Responses expose `receipt.issuedAt/expiresAt` in Unix milliseconds. Expired, untimed or future-dated replays return 409 without reevaluation or authorization. Reevaluate with a new identifier after review; increasing lifetime cannot extend an issued receipt. The queue remains process-local, not a distributed lock.
+
+ES — Los recibos caducan a las 24 h por defecto (`maxReceiptAgeMs`, 1 ms a 30 días). Respuestas exponen `receipt.issuedAt/expiresAt` en milisegundos Unix. Repeticiones caducadas, sin fechas o futuras devuelven 409 sin reevaluación ni autorización. Reevaluar con nuevo identificador tras revisión; ampliar duración no prolonga un recibo emitido. La cola es local al proceso, no un bloqueo distribuido.

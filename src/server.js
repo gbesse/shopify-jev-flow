@@ -43,9 +43,11 @@ const canonical = value => Array.isArray(value) ? value.map(canonical) : value &
   ? Object.fromEntries(Object.keys(value).sort().map(key => [key, canonical(value[key])])) : value;
 const digest = value => createHash('sha256').update(JSON.stringify(canonical(value))).digest('hex');
 
-export async function handleAction(rawBody, headers, { secret = process.env.SHOPIFY_API_SECRET, fixture = process.env.JEV_FIXTURE === '1', store = null, provider = liveProvider } = {}) {
+export async function handleAction(rawBody, headers, { secret = process.env.SHOPIFY_API_SECRET, fixture = process.env.JEV_FIXTURE === '1', store = null, provider = liveProvider, maxReceiptAgeMs = 86_400_000, now = Date.now } = {}) {
   if (!fixture && !verifyShopifyHmac(rawBody, headers['x-shopify-hmac-sha256'], secret)) return { status: 401, body: { error: 'invalid_hmac' } };
   if (store !== null) checkedStore(store);
+  if (!Number.isSafeInteger(maxReceiptAgeMs) || maxReceiptAgeMs < 1 || maxReceiptAgeMs > 30 * 86_400_000 || typeof now !== 'function') throw new TypeError('Durée de reçu invalide / Invalid receipt lifetime / Duración de recibo no válida');
+  const clock = () => { const value = now(); if (!Number.isSafeInteger(value) || value < 0 || !Number.isSafeInteger(value + maxReceiptAgeMs)) throw new TypeError('Horloge invalide / Invalid clock / Reloj no válido'); return value; };
   const input = JSON.parse(rawBody);
   const request = buildRequest(input);
   const scope = headers['x-shopify-shop-domain'] ?? 'fixture-local';
@@ -60,7 +62,12 @@ export async function handleAction(rawBody, headers, { secret = process.env.SHOP
       if (receipt?.requestFingerprint !== requestFingerprint)
         return { status: 409, body: { error: 'decision_id_conflict' } };
       if (!validDecision(receipt.decision, input.decisionId)) return { status: 409, body: { error: 'invalid_bound_receipt' } };
-      return { status: 200, body: { ...structuredClone(receipt.decision), replayed: true } };
+      const current = clock();
+      if (!Number.isSafeInteger(receipt.issuedAt) || !Number.isSafeInteger(receipt.expiresAt) || receipt.issuedAt < 0 || receipt.issuedAt > current || receipt.expiresAt <= receipt.issuedAt)
+        return { status: 409, body: { error: 'invalid_receipt_time' } };
+      if (current >= Math.min(receipt.expiresAt, receipt.issuedAt + maxReceiptAgeMs))
+        return { status: 409, body: { error: 'decision_receipt_expired' } };
+      return { status: 200, body: { ...structuredClone(receipt.decision), replayed: true, receipt: { issuedAt: receipt.issuedAt, expiresAt: Math.min(receipt.expiresAt, receipt.issuedAt + maxReceiptAgeMs) } } };
     }
     // Old receipts without a request binding cannot safely authorize a replay.
     if (Object.hasOwn(decisions, input.decisionId))
@@ -68,9 +75,10 @@ export async function handleAction(rawBody, headers, { secret = process.env.SHOP
     const response = fixture ? fakeResponse(input) : await provider(request);
     const decision = structuredClone({ decisionId: input.decisionId, ...normalizeDecision(response), model: response.model, usage: response.usage });
     if (!validDecision(decision, input.decisionId)) throw new TypeError('Décision invalide / Invalid decision / Decisión no válida');
-    decisions[receiptKey] = { requestFingerprint, decision };
+    const issuedAt = clock(), expiresAt = issuedAt + maxReceiptAgeMs;
+    decisions[receiptKey] = { requestFingerprint, decision, issuedAt, expiresAt };
     if (!store) { await saveStore(decisions); await audit({ recordedAt: new Date().toISOString(), shopDomain: scope, requestFingerprint, ...decision }); }
-    return { status: 200, body: structuredClone(decision) };
+    return { status: 200, body: { ...structuredClone(decision), receipt: { issuedAt, expiresAt } } };
   };
   const previous = store ? storeQueues.get(store) ?? Promise.resolve() : persistentQueue;
   const work = previous.catch(() => {}).then(perform);

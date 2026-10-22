@@ -58,3 +58,11 @@ FR — Les reçus expirent après 24 h par défaut (`maxReceiptAgeMs`, 1 ms à 3
 EN — Receipts expire after 24 hours by default (`maxReceiptAgeMs`, 1 ms to 30 days). Responses expose `receipt.issuedAt/expiresAt` in Unix milliseconds. Expired, untimed or future-dated replays return 409 without reevaluation or authorization. Reevaluate with a new identifier after review; increasing lifetime cannot extend an issued receipt. The queue remains process-local, not a distributed lock.
 
 ES — Los recibos caducan a las 24 h por defecto (`maxReceiptAgeMs`, 1 ms a 30 días). Respuestas exponen `receipt.issuedAt/expiresAt` en milisegundos Unix. Repeticiones caducadas, sin fechas o futuras devuelven 409 sin reevaluación ni autorización. Reevaluar con nuevo identificador tras revisión; ampliar duración no prolonga un recibo emitido. La cola es local al proceso, no un bloqueo distribuido.
+
+## Probabilités / Probabilities / Probabilidades
+
+FR — Les probabilités de route doivent être des nombres JSON : les chaînes et booléens sont rejetés avant toute autorisation automatique.
+
+EN — Route probabilities must be JSON numbers: strings and booleans are rejected before automatic authorization.
+
+ES — Las probabilidades de ruta deben ser números JSON: cadenas y booleanos se rechazan antes de autorizar automáticamente.

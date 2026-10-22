@@ -35,7 +35,8 @@ export function normalizeDecision(response, { minConfidence = 0.8 } = {}) {
   const confidenceAnswer = response?.answers?.confidence_to_automate;
   if (route?.type !== 'choice' || !OUTCOMES.includes(route.choice)) throw new TypeError('Provider returned an invalid route');
   if (confidenceAnswer?.type !== 'noul' || !Number.isFinite(confidenceAnswer.noul)) throw new TypeError('Provider returned invalid confidence');
-  const probability = Number(route.probabilities?.[route.choice] ?? route.confidence ?? 0);
+  const probability = route.probabilities?.[route.choice] ?? route.confidence ?? 0;
+  if (typeof probability !== 'number') throw new TypeError('Probabilité numérique requise / Numeric probability required / Se requiere probabilidad numérica');
   if (!Number.isFinite(probability) || probability < 0 || probability > 1 || confidenceAnswer.noul < 0 || confidenceAnswer.noul > 1) throw new TypeError('Provider returned an out-of-range probability');
   const reviewRequired = route.choice === 'manual_review' || probability < minConfidence || confidenceAnswer.noul < minConfidence;
   return { route: reviewRequired ? 'manual_review' : route.choice, proposedRoute: route.choice, confidence: Math.min(probability, confidenceAnswer.noul), reviewRequired };

@@ -1,4 +1,4 @@
-import { createHmac, timingSafeEqual } from 'node:crypto';
+import { createHash, createHmac, timingSafeEqual } from 'node:crypto';
 
 export const MODEL = 'jev-1.13.0';
 export const OUTCOMES = ['auto_approve', 'manual_review', 'reject'];
@@ -46,4 +46,18 @@ export function fakeResponse(input) {
   const amount = Number(input.subject.amount ?? 0);
   const proposed = amount > 500 ? 'manual_review' : 'auto_approve';
   return { model: MODEL, answers: { route: { type: 'choice', choice: proposed, probabilities: { [proposed]: 0.92 } }, confidence_to_automate: { type: 'noul', noul: proposed === 'auto_approve' ? 0.9 : 0.62 } }, usage: { input_tokens: 36 } };
+}
+
+function receiptFingerprint(input) {
+  const request = buildRequest(input);
+  const canonical = value => Array.isArray(value) ? value.map(canonical) : value && typeof value === 'object' ? Object.fromEntries(Object.keys(value).sort().map(key => [key, canonical(value[key])])) : value;
+  return createHash('sha256').update(JSON.stringify(canonical({decisionId: input.decisionId, request}))).digest('hex');
+}
+export function createDecisionReceipt(input, response, options = {}) {
+  return { schema: 'shopify-jev-receipt-v1', decisionId: input.decisionId, requestSha256: receiptFingerprint(input), decision: normalizeDecision(response, options), effectVerified: false };
+}
+export function reconcileDecisionReceipt(receipt, currentInput) {
+  const current = receiptFingerprint(currentInput);
+  const matches = receipt?.schema === 'shopify-jev-receipt-v1' && receipt.decisionId === currentInput.decisionId && receipt.requestSha256 === current;
+  return { inputCurrent: matches, reviewRequired: !matches || receipt.decision?.reviewRequired !== false, effectVerified: false };
 }

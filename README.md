@@ -66,3 +66,12 @@ FR — Les probabilités de route doivent être des nombres JSON : les chaînes 
 EN — Route probabilities must be JSON numbers: strings and booleans are rejected before automatic authorization.
 
 ES — Las probabilidades de ruta deben ser números JSON: cadenas y booleanos se rechazan antes de autorizar automáticamente.
+
+
+## 2026-11-12 — FR / EN / ES
+
+FR : createDecisionReceipt et reconcileDecisionReceipt relient une décision au hash canonique de la politique et du sujet ; toute modification exige une revue. Reçu local, non signé, pas de preuve d’effet Shopify.
+
+EN: createDecisionReceipt and reconcileDecisionReceipt bind decisions to a canonical policy/subject hash; changed input requires review. Local unsigned receipt, no Shopify effect proof.
+
+ES: createDecisionReceipt y reconcileDecisionReceipt vinculan decisiones al hash canónico de política y sujeto; cambios exigen revisión. Recibo local sin firma ni prueba de efecto Shopify.

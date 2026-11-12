@@ -1,0 +1,5 @@
+import test from 'node:test';import assert from 'node:assert/strict';
+import {createDecisionReceipt,reconcileDecisionReceipt,fakeResponse} from '../src/core.js';
+const input={decisionId:'d1',policy:'merchant',subject:{amount:12,currency:'EUR'}};
+test('changed policy or subject invalidates receipt even with reused decision id',()=>{const r=createDecisionReceipt(input,fakeResponse(input));assert.equal(reconcileDecisionReceipt(r,input).inputCurrent,true);for(const changed of [{...input,policy:'new'},{...input,subject:{amount:600,currency:'EUR'}}]){const out=reconcileDecisionReceipt(r,changed);assert.equal(out.inputCurrent,false);assert.equal(out.reviewRequired,true);}assert.equal(r.effectVerified,false);});
+test('object key order is stable; decision and identity stay bound',()=>{const r=createDecisionReceipt(input,fakeResponse(input));assert.equal(reconcileDecisionReceipt(r,{subject:{currency:'EUR',amount:12},policy:'merchant',decisionId:'d1'}).inputCurrent,true);assert.equal(reconcileDecisionReceipt(r,{...input,decisionId:'d2'}).inputCurrent,false);assert.equal(reconcileDecisionReceipt(null,input).reviewRequired,true);});
